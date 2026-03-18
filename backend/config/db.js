@@ -1,11 +1,16 @@
 import mongoose from 'mongoose'
 
+let isConnected = false
+
 export async function connectDB() {
+  if (isConnected) return // reuse connection across serverless invocations
   try {
     const conn = await mongoose.connect(process.env.MONGO_URI)
-    console.log(`✅ MongoDB connected: ${conn.connection.host}`)
+    isConnected = true
+    console.log(`MongoDB connected: ${conn.connection.host}`)
   } catch (err) {
-    console.error(`❌ MongoDB connection error: ${err.message}`)
-    process.exit(1)  // Stop the server if DB fails
+    console.error(`MongoDB connection error: ${err.message}`)
+    // Don't process.exit() in serverless - throw so request fails gracefully
+    throw err
   }
 }
