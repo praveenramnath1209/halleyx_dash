@@ -141,6 +141,7 @@ export function useFreeDrag({ widgets, setWidgets, canvasRef, colCount = COL_COU
     setResizingId(null)
     setGhost(null)
     setPreview(null)
+    document.body.classList.remove('is-dragging')
   }
 
   // ── start move (mouse) ────────────────────────────────────────────────
@@ -160,9 +161,7 @@ export function useFreeDrag({ widgets, setWidgets, canvasRef, colCount = COL_COU
     }
     setDraggingId(widget.id)
     setGhost({ col: widget.layout.col, row: widget.layout.row, w: widget.layout.w, h: widget.layout.h })
-  }
-
-  // ── start move (touch) ────────────────────────────────────────────────
+    document.body.classList.add('is-dragging')
   const startDragTouch = (e, widget) => {
     e.stopPropagation()
     // Don't call e.preventDefault() here — let the long-press fire
@@ -177,6 +176,7 @@ export function useFreeDrag({ widgets, setWidgets, canvasRef, colCount = COL_COU
     }
     setDraggingId(widget.id)
     setGhost({ col: widget.layout.col, row: widget.layout.row, w: widget.layout.w, h: widget.layout.h })
+    document.body.classList.add('is-dragging')
   }
 
   // ── start resize (mouse) ──────────────────────────────────────────────
@@ -193,6 +193,7 @@ export function useFreeDrag({ widgets, setWidgets, canvasRef, colCount = COL_COU
     }
     setResizingId(widget.id)
     setGhost({ col: widget.layout.col, row: widget.layout.row, w: widget.layout.w, h: widget.layout.h })
+    document.body.classList.add('is-dragging')
   }
 
   // ── start resize (touch) ──────────────────────────────────────────────
