@@ -12,19 +12,12 @@ function overlaps(a, b) {
   )
 }
 
-/**
- * compact — places every widget at the topmost row where it fits without
- * overlapping, respecting a horizontal grid boundary (colCount).
- *
- * lockedId / lockedLayout: the widget being dragged — its position is fixed.
- */
 export function compact(widgets, lockedId, lockedLayout, colCount = COL_COUNT) {
   const layouts = {}
   for (const w of widgets) {
     layouts[w.id] = lockedId === w.id ? { ...lockedLayout } : { ...w.layout }
   }
 
-  // Sort by row then col so items above-left are placed first
   const order = [...widgets].sort((a, b) => {
     const la = layouts[a.id], lb = layouts[b.id]
     return la.row !== lb.row ? la.row - lb.row : la.col - lb.col
@@ -34,8 +27,7 @@ export function compact(widgets, lockedId, lockedLayout, colCount = COL_COUNT) {
     if (w.id === lockedId) continue
     const l = layouts[w.id]
 
-    // Clamp width to grid
-    const clampedW = Math.min(l.w, colCount)
+    const clampedW   = Math.min(l.w, colCount)
     const clampedCol = Math.min(l.col, colCount - clampedW)
 
     let row = 0
@@ -52,11 +44,6 @@ export function compact(widgets, lockedId, lockedLayout, colCount = COL_COUNT) {
   return layouts
 }
 
-/**
- * resolveCollisions — computes a real-time preview layout while dragging.
- * The dragged widget is locked at `proposed`; all others are re-compacted
- * around it so nothing overlaps.
- */
 function resolveCollisions(draggingId, proposed, allWidgets, colCount = COL_COUNT) {
   return compact(allWidgets, draggingId, proposed, colCount)
 }
@@ -72,13 +59,12 @@ export function useFreeDrag({ widgets, setWidgets, canvasRef, colCount = COL_COU
   const [draggingId, setDraggingId] = useState(null)
   const [resizingId, setResizingId] = useState(null)
 
-  // ── keep a live col-width that always reads the real DOM width ──
   const getColWidth = () =>
     canvasRef.current ? canvasRef.current.clientWidth / colCount : 80
 
   const setGhost = (g) => { ghostRef.current = g; setGhostState(g) }
 
-  // ── Internal shared move handler ──────────────────────────────────────
+  // ── Shared move handler ───────────────────────────────────────────────
   const handlePointerMove = ({ clientX, clientY }) => {
     if (!dragState.current) return
     const ds = dragState.current
@@ -110,7 +96,7 @@ export function useFreeDrag({ widgets, setWidgets, canvasRef, colCount = COL_COU
     }
   }
 
-  // ── Internal shared end handler ───────────────────────────────────────
+  // ── Shared end handler ────────────────────────────────────────────────
   const handlePointerUp = () => {
     if (!dragState.current) return
     const ds = dragState.current
@@ -144,12 +130,12 @@ export function useFreeDrag({ widgets, setWidgets, canvasRef, colCount = COL_COU
     document.body.classList.remove('is-dragging')
   }
 
-  // ── start move (mouse) ────────────────────────────────────────────────
+  // ── Start move (mouse) ────────────────────────────────────────────────
   const startDrag = (e, widget) => {
     if (e.button !== 0) return
     e.preventDefault()
     e.stopPropagation()
-    const rect       = e.currentTarget.closest('[data-canvas-widget]').getBoundingClientRect()
+    const rect = e.currentTarget.closest('[data-canvas-widget]').getBoundingClientRect()
     const canvasRect = canvasRef.current.getBoundingClientRect()
     void canvasRect
     dragState.current = {
@@ -162,11 +148,13 @@ export function useFreeDrag({ widgets, setWidgets, canvasRef, colCount = COL_COU
     setDraggingId(widget.id)
     setGhost({ col: widget.layout.col, row: widget.layout.row, w: widget.layout.w, h: widget.layout.h })
     document.body.classList.add('is-dragging')
+  }
+
+  // ── Start move (touch) ────────────────────────────────────────────────
   const startDragTouch = (e, widget) => {
     e.stopPropagation()
-    // Don't call e.preventDefault() here — let the long-press fire
-    const touch      = e.touches[0]
-    const rect       = e.currentTarget.closest('[data-canvas-widget]').getBoundingClientRect()
+    const touch = e.touches[0]
+    const rect  = e.currentTarget.closest('[data-canvas-widget]').getBoundingClientRect()
     dragState.current = {
       type: 'move', id: widget.id,
       offsetX: touch.clientX - rect.left,
@@ -179,7 +167,7 @@ export function useFreeDrag({ widgets, setWidgets, canvasRef, colCount = COL_COU
     document.body.classList.add('is-dragging')
   }
 
-  // ── start resize (mouse) ──────────────────────────────────────────────
+  // ── Start resize (mouse) ──────────────────────────────────────────────
   const startResize = (e, widget) => {
     if (e.button !== 0) return
     e.preventDefault()
@@ -196,7 +184,7 @@ export function useFreeDrag({ widgets, setWidgets, canvasRef, colCount = COL_COU
     document.body.classList.add('is-dragging')
   }
 
-  // ── start resize (touch) ──────────────────────────────────────────────
+  // ── Start resize (touch) ──────────────────────────────────────────────
   const startResizeTouch = (e, widget) => {
     e.stopPropagation()
     const touch = e.touches[0]
@@ -209,32 +197,33 @@ export function useFreeDrag({ widgets, setWidgets, canvasRef, colCount = COL_COU
     }
     setResizingId(widget.id)
     setGhost({ col: widget.layout.col, row: widget.layout.row, w: widget.layout.w, h: widget.layout.h })
+    document.body.classList.add('is-dragging')
   }
 
   useEffect(() => {
-    const onMouseMove = (e) => handlePointerMove({ clientX: e.clientX, clientY: e.clientY })
-    const onMouseUp   = ()  => handlePointerUp()
+    const onMouseMove  = (e) => handlePointerMove({ clientX: e.clientX, clientY: e.clientY })
+    const onMouseUp    = ()  => handlePointerUp()
 
     const onTouchMove = (e) => {
       if (!dragState.current) return
-      e.preventDefault() // prevent page scroll while dragging
+      e.preventDefault()
       const t = e.touches[0]
       handlePointerMove({ clientX: t.clientX, clientY: t.clientY })
     }
     const onTouchEnd = () => handlePointerUp()
 
-    window.addEventListener('mousemove',  onMouseMove)
-    window.addEventListener('mouseup',    onMouseUp)
-    window.addEventListener('touchmove',  onTouchMove, { passive: false })
-    window.addEventListener('touchend',   onTouchEnd)
-    window.addEventListener('touchcancel',onTouchEnd)
+    window.addEventListener('mousemove',   onMouseMove)
+    window.addEventListener('mouseup',     onMouseUp)
+    window.addEventListener('touchmove',   onTouchMove, { passive: false })
+    window.addEventListener('touchend',    onTouchEnd)
+    window.addEventListener('touchcancel', onTouchEnd)
 
     return () => {
-      window.removeEventListener('mousemove',  onMouseMove)
-      window.removeEventListener('mouseup',    onMouseUp)
-      window.removeEventListener('touchmove',  onTouchMove)
-      window.removeEventListener('touchend',   onTouchEnd)
-      window.removeEventListener('touchcancel',onTouchEnd)
+      window.removeEventListener('mousemove',   onMouseMove)
+      window.removeEventListener('mouseup',     onMouseUp)
+      window.removeEventListener('touchmove',   onTouchMove)
+      window.removeEventListener('touchend',    onTouchEnd)
+      window.removeEventListener('touchcancel', onTouchEnd)
     }
   }, [widgets, setWidgets, colCount])
 
